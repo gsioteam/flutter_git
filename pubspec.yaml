@@ -1,6 +1,6 @@
 name: flutter_git
 description: A new Flutter plugin.
-version: 0.0.2
+version: 0.0.3
 homepage:
 
 environment:
@@ -10,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  native_main_thread: ^0.0.2
   ffi: ^1.1.2
 
 dev_dependencies:

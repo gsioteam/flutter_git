@@ -7,22 +7,23 @@
 #include <jni.h>
 
 JavaVM* bmt_vm = NULL;
-jclass bmt_class = NULL;
+jclass bmt_plugin = NULL;
 
 void bmt_sendEvent(const char *name, const char *data) {
-    if (bmt_vm && bmt_class) {
+    if (bmt_vm && bmt_plugin) {
         JNIEnv *env = NULL;
         if ((*bmt_vm)->AttachCurrentThread(bmt_vm, &env, NULL) != 0) {
         }
 
         if (env) {
-            jmethodID method = (*env)->GetStaticMethodID(env, bmt_class, "sendEvent",
+            jclass clazz = (*env)->GetObjectClass(env, bmt_plugin);
+            jmethodID method = (*env)->GetMethodID(env, clazz, "sendEvent",
                     "(Ljava/lang/String;Ljava/lang/String;)V");
 
             jstring jname = (*env)->NewStringUTF(env, name);
             jstring jdata = (*env)->NewStringUTF(env, data);
 
-            (*env)->CallStaticVoidMethod(env, bmt_class, method, jname, jdata);
+            (*env)->CallVoidMethod(env, bmt_plugin, method, jname, jdata);
 
             (*env)->DeleteLocalRef(env, jname);
             (*env)->DeleteLocalRef(env, jdata);
@@ -46,14 +47,14 @@ void JNI_OnUnload(JavaVM *vm, void *reserved) {
 }
 
 JNIEXPORT void JNICALL
-Java_com_neo_flutter_1git_FlutterGitPlugin_setup(JNIEnv *env, jobject thiz, jclass clazz) {
-    if (bmt_class) {
-        (*env)->DeleteGlobalRef(env, clazz);
+Java_com_neo_flutter_1git_FlutterGitPlugin_setup(JNIEnv *env, jobject thiz, jobject plugin) {
+    if (bmt_plugin) {
+        (*env)->DeleteGlobalRef(env, bmt_plugin);
     }
-    if (clazz) {
-        bmt_class = (*env)->NewGlobalRef(env, clazz);
+    if (plugin) {
+        bmt_plugin = (*env)->NewGlobalRef(env, plugin);
     } else {
-        bmt_class = NULL;
+        bmt_plugin = NULL;
     }
 }
 

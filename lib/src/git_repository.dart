@@ -4,8 +4,8 @@ import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_git/src/ffi_bind.dart';
-import 'package:native_main_thread/native_main_thread.dart';
 
 class GitControllerValue {
   String event;
@@ -15,6 +15,54 @@ class GitControllerValue {
     this.event = "",
     this.content = ""
   });
+}
+
+MethodChannel _methodChannel = MethodChannel("flutter_git");
+typedef EventCallback = void Function(String name, String data);
+
+class _MethodControl {
+  static _MethodControl? _instance;
+  static _MethodControl get instance {
+    if (_instance == null) {
+      _instance = _MethodControl();
+    }
+    return _instance!;
+  }
+
+  Map<String, List<EventCallback>> _map = {};
+
+  _MethodControl() {
+    _methodChannel.setMethodCallHandler(_call);
+  }
+
+  Future<dynamic> _call(MethodCall call) async {
+    if (call.method == "event") {
+      String name = call.arguments["name"];
+      String data = call.arguments["data"];
+
+      var list = _map[name];
+      if (list != null) {
+        for (var func in list) {
+          func(name, data);
+        }
+      }
+    }
+  }
+
+  void addListener(String name, EventCallback func) {
+    var list = _map[name];
+    if (list == null) {
+      list = _map[name] = [];
+    }
+    list.add(func);
+  }
+
+  void removeListener(String name, EventCallback func) {
+    var list = _map[name];
+    if (list != null) {
+      list.remove(func);
+    }
+  }
 }
 
 class GitController extends ValueNotifier<GitControllerValue> {
@@ -37,14 +85,14 @@ class GitController extends ValueNotifier<GitControllerValue> {
     _controller.ref.repo = repo._repository;
     _controller.ref.id = _id;
     _controller.ref.canceled = 0;
-    NativeMainThread.instance.addListener("event:$_id", _onEvent);
+    _MethodControl.instance.addListener("event:$_id", _onEvent);
     repo._lock++;
   }
 
   dispose() {
     super.dispose();
     _disposed = true;
-    NativeMainThread.instance.removeListener("event:$_id", _onEvent);
+    _MethodControl.instance.removeListener("event:$_id", _onEvent);
     malloc.free(_controller);
     repo._lock--;
   }
