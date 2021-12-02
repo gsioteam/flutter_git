@@ -28,18 +28,25 @@ public class FlutterGitPlugin implements FlutterPlugin, MethodCallHandler {
   private MethodChannel channel;
   private Handler handler;
 
+  private static final Map<Integer, FlutterGitPlugin> plugins = new HashMap<>();
+  private static int idCounter = 0x99003;
+  private int id = idCounter++;
+
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
     channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_git");
     channel.setMethodCallHandler(this);
     handler = new Handler();
-    setup(this);
+    synchronized (plugins) {
+      plugins.put(id, this);
+    }
+    setup(FlutterGitPlugin.class);
   }
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (call.method.equals("getPlatformVersion")) {
-      result.success("Android " + android.os.Build.VERSION.RELEASE);
+    if (call.method.equals("getHandler")) {
+      result.success(id);
     } else {
       result.notImplemented();
     }
@@ -48,21 +55,23 @@ public class FlutterGitPlugin implements FlutterPlugin, MethodCallHandler {
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     channel.setMethodCallHandler(null);
-    setup(null);
   }
 
 
-  public void sendEvent(final String name, final String data) {
-    handler.post(new Runnable() {
-      @Override
-      public void run() {
-        Map<String, String> map = new HashMap<>();
-        map.put("name", name);
-        map.put("data", data);
-        channel.invokeMethod("event", map);
-      }
-    });
+  public static void sendEvent(int handler, final String name, final String data) {
+    final FlutterGitPlugin plugin = plugins.get(handler);
+    if (plugin != null) {
+      plugin.handler.post(new Runnable() {
+        @Override
+        public void run() {
+          Map<String, String> map = new HashMap<>();
+          map.put("name", name);
+          map.put("data", data);
+          plugin.channel.invokeMethod("event", map);
+        }
+      });
+    }
   }
 
-  native void setup(FlutterGitPlugin plugin);
+  native void setup(Class<FlutterGitPlugin> clazz);
 }

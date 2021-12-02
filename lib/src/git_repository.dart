@@ -129,6 +129,8 @@ class GitController extends ValueNotifier<GitControllerValue> {
   }
 }
 
+int? _handler;
+
 class GitRepository {
 
   final String path;
@@ -136,10 +138,11 @@ class GitRepository {
   int _lock = 0;
 
   GitRepository(this.path) {
-    flutterInit();
+    if (_handler == null) throw Exception("flutter_git is not initialized.");
     _repository = malloc.allocate(sizeOf<CGitRepository>());
     _repository.ref.path = path.toNativeUtf8();
     _repository.ref.repo = Pointer.fromAddress(0);
+    _repository.ref.handler = _handler!;
   }
 
   void dispose() {
@@ -226,5 +229,10 @@ class GitRepository {
     var ptr = path.toNativeUtf8();
     flutterSetCacertPath(ptr);
     malloc.free(ptr);
+  }
+
+  static Future<void> initialize() async {
+    _handler = await _methodChannel.invokeMethod<int>("getHandler");
+    flutterInit();
   }
 }

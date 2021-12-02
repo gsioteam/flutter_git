@@ -12,6 +12,7 @@
 typedef struct _GitRepository {
     const char *path;
     git_repository *repo;
+    int handler;
 } GitRepository;
 
 typedef struct _GitController {
@@ -145,7 +146,7 @@ int fetch_progress(const git_indexer_progress *stats, void *payload) {
     sprintf(name, "event:%d", controller->id);
     char data[64];
     sprintf(data, "fetch:%u/%u", received, total);
-    bmt_sendEvent(name, data);
+    bmt_sendEvent(controller->repo->handler, name, data);
     return 0;
 }
 
@@ -160,7 +161,7 @@ void checkout_progress(
     sprintf(name, "event:%d", controller->id);
     char data[64];
     sprintf(data, "checkout:%u/%u", completed_steps, total_steps);
-    bmt_sendEvent(name, data);
+    bmt_sendEvent(controller->repo->handler, name, data);
 }
 
 void sendError(GitController *controller) {
@@ -168,7 +169,7 @@ void sendError(GitController *controller) {
     sprintf(name, "event:%d", controller->id);
     char data[256];
     sprintf(data, "error:%s", git_error_last()->message);
-    bmt_sendEvent(name, data);
+    bmt_sendEvent(controller->repo->handler, name, data);
 }
 
 void* clone_thread(void *arg) {
@@ -193,7 +194,7 @@ void* clone_thread(void *arg) {
 
         char name[64];
         sprintf(name, "event:%d", controller->id);
-        bmt_sendEvent(name, "complete:success");
+        bmt_sendEvent(controller->repo->handler, name, "complete:success");
     }
     return NULL;
 }
@@ -215,7 +216,7 @@ void* fetch_thread(void *arg) {
     if (!remote) {
         char name[64];
         sprintf(name, "event:%d", controller->id);
-        bmt_sendEvent(name, "error:no_remote");
+        bmt_sendEvent(controller->repo->handler, name, "error:no_remote");
     } else {
         git_fetch_options ops = GIT_FETCH_OPTIONS_INIT;
 
@@ -227,7 +228,7 @@ void* fetch_thread(void *arg) {
         } else {
             char name[64];
             sprintf(name, "event:%d", controller->id);
-            bmt_sendEvent(name, "complete:success");
+            bmt_sendEvent(controller->repo->handler, name, "complete:success");
         }
     }
 
@@ -259,7 +260,7 @@ void *checkout_thread(void *arg) {
     } else {
         char name[64];
         sprintf(name, "event:%d", controller->id);
-        bmt_sendEvent(name, "complete:success");
+        bmt_sendEvent(controller->repo->handler, name, "complete:success");
     }
 
     return NULL;

@@ -11,6 +11,9 @@ class CGitRepository extends Struct {
   external Pointer<Utf8> path;
 
   external Pointer repo;
+
+  @Int32()
+  external int handler;
 }
 
 class CGitController extends Struct {
