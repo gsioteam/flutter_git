@@ -7,7 +7,7 @@ final DynamicLibrary nativeGLib = Platform.isAndroid
     ? DynamicLibrary.open("libflutter_git.so")
     : DynamicLibrary.process();
 
-class CGitRepository extends Struct {
+base class CGitRepository extends Struct {
   external Pointer<Utf8> path;
 
   external Pointer repo;
@@ -16,7 +16,7 @@ class CGitRepository extends Struct {
   external int handler;
 }
 
-class CGitController extends Struct {
+base class CGitController extends Struct {
   @Int32()
   external int id;
 
